@@ -2,14 +2,12 @@ package keyrefs
 
 type RadixMap struct{ root *radixNode }
 
-func NewRadixMap() *RadixMap { return &RadixMap{root: &radixNode{}} }
+func NewRadixMap() Map { return &RadixMap{root: &radixNode{}} }
 
 type radixNode struct {
 	children [256]*radixNode // 256 children (all values a byte/uint8 can have)
 	br       *ByteRange      // not nil if leaf node
 }
-
-func (m *RadixMap) IsLexOrdered() bool { return true }
 
 func (m *RadixMap) Set(key []byte, ref *ByteRange) error {
 	currNode := m.root
@@ -73,4 +71,15 @@ func (n *radixNode) walkRecurse(k []byte, callback WalkFunc) {
 		}
 		child.walkRecurse(append(k, byte(i)), callback)
 	}
+}
+
+func (m *RadixMap) IsLexOrdered() bool { return true }
+
+func (m *RadixMap) NumKeys() int {
+	count := 0
+	m.Walk(func(_ []byte, _ *ByteRange) bool {
+		count++
+		return true
+	})
+	return count
 }

@@ -30,3 +30,10 @@ func OpenFile(fpath string) (*File, error) {
 
 	return file, nil
 }
+
+func (f *File) Set(k, v []byte) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	panic("not implemented yet")
+}

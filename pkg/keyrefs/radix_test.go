@@ -4,10 +4,6 @@ import (
 	"testing"
 )
 
-func TestRadixMap(t *testing.T) {
-	testMap(t, func() Map { return NewRadixMap() }, false)
-}
+func TestRadixMap(t *testing.T) { testMap(t, NewRadixMap) }
 
-func BenchmarkRadixMap(b *testing.B) {
-	benchmarkMap(b, func() Map { return NewRadixMap() })
-}
+func BenchmarkRadixMap(b *testing.B) { benchmarkMap(b, NewRadixMap) }

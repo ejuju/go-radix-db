@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func testMap(t *testing.T, newMap func() Map, skipOrderedMapTest bool) {
+func testMap(t *testing.T, newMap func() Map) {
 	t.Helper()
 
 	t.Run("can set and get back data", func(t *testing.T) {
@@ -70,24 +70,39 @@ func testMap(t *testing.T, newMap func() Map, skipOrderedMapTest bool) {
 			t.Fatalf("got keys %q but wanted ordered keys %q", gotKeys, wantKeys)
 		}
 	})
+
+	t.Run("can count keys", func(t *testing.T) {
+		m := newMap()
+		setKeys := []string{"1", "2", "3"}
+		for i, k := range setKeys {
+			err := m.Set([]byte(k), &ByteRange{Index: i + 1})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		gotCount := m.NumKeys()
+		if gotCount != len(setKeys) {
+			t.Fatalf("got count %d but wanted %d", gotCount, len(setKeys))
+		}
+	})
 }
 
 func benchmarkMap(b *testing.B, newMap func() Map) {
 	b.Helper()
 
-	b.Run("set a known key (length 16)", func(b *testing.B) {
+	b.Run("set 1000 new keys (length 16)", func(b *testing.B) {
 		m := newMap()
-		key := []byte("1234567890123456")
-		br := &ByteRange{}
-		err := m.Set(key, br)
-		if err != nil {
-			panic(err)
-		}
 		b.ResetTimer()
+
 		for n := 0; n < b.N; n++ {
-			err := m.Set(key, br)
-			if err != nil {
-				panic(err)
+			for i := 0; i < 1000; i++ {
+				k := []byte(fmt.Sprintf("%016s", strconv.Itoa(i)))
+				br := &ByteRange{Index: i}
+				err := m.Set(k, br)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	})
@@ -99,6 +114,7 @@ func benchmarkMap(b *testing.B, newMap func() Map) {
 		if err != nil {
 			panic(err)
 		}
+
 		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			_ = m.Get(key)
@@ -108,15 +124,16 @@ func benchmarkMap(b *testing.B, newMap func() Map) {
 	b.Run("get an unknown key (length 16)", func(b *testing.B) {
 		key := []byte("1234567890123456")
 		m := newMap()
+
 		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			_ = m.Get(key)
 		}
 	})
 
-	b.Run("walk 10_000 keys", func(b *testing.B) {
+	b.Run("walk 1_000 keys", func(b *testing.B) {
 		m := newMap()
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < 1_000; i++ {
 			err := m.Set([]byte(fmt.Sprintf("%05s", strconv.Itoa(i))), &ByteRange{Index: i})
 			if err != nil {
 				panic(err)
@@ -128,20 +145,4 @@ func benchmarkMap(b *testing.B, newMap func() Map) {
 			m.Walk(func(_ []byte, _ *ByteRange) bool { return true })
 		}
 	})
-}
-
-func TestGoMap(t *testing.T) {
-	testMap(t, NewGoMap, true)
-}
-
-func BenchmarkGoMap(b *testing.B) {
-	benchmarkMap(b, NewGoMap)
-}
-
-func TestGoSliceMap(t *testing.T) {
-	testMap(t, NewGoSliceMap, true)
-}
-
-func BenchmarkGoSliceMap(b *testing.B) {
-	benchmarkMap(b, NewGoSliceMap)
 }
