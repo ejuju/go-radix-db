@@ -2,7 +2,6 @@ package keyrefs
 
 import (
 	"bytes"
-	"sort"
 )
 
 type GoMap map[string]*ByteRange
@@ -35,19 +34,18 @@ func (m *GoSliceMap) IsLexOrdered() bool { return true }
 
 func (m *GoSliceMap) Set(key []byte, br *ByteRange) error {
 	for i, pair := range *m {
-		if bytes.Equal(key, pair.k) {
+		switch bytes.Compare(key, pair.k) {
+		case 0:
 			(*m)[i].v = br // found key, replace value
+			return nil
+		case -1:
+			*m = append((*m)[:i], append([]*goSliceMapItem{{k: key, v: br}}, (*m)[i:]...)...)
 			return nil
 		}
 	}
 	*m = append(*m, &goSliceMapItem{k: key, v: br})
-	sort.Sort(m)
 	return nil
 }
-
-func (m *GoSliceMap) Len() int           { return len(*m) }
-func (m *GoSliceMap) Swap(i, j int)      { (*m)[i], (*m)[j] = (*m)[j], (*m)[i] }
-func (m *GoSliceMap) Less(i, j int) bool { return bytes.Compare((*m)[i].k, (*m)[j].k) == -1 }
 
 func (m *GoSliceMap) Delete(key []byte) error {
 	for i, pair := range *m {

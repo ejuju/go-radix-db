@@ -52,7 +52,7 @@ func testMap(t *testing.T, newMap func() Map, skipOrderedMapTest bool) {
 			t.SkipNow()
 		}
 
-		setKeys := []string{"2", "10", "1", "00", "0"}  // unordered
+		setKeys := []string{"00", "10", "1", "2", "0"}  // unordered
 		wantKeys := []string{"0", "00", "1", "10", "2"} // ordered
 		for _, k := range setKeys {
 			err := m.Set([]byte(k), &ByteRange{}) // file ref data is irrelevant here
