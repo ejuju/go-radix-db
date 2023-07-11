@@ -39,23 +39,28 @@ var (
 	ErrUnknownOp    = errors.New("unknown op")
 )
 
-func (f Binary) encodeRow(op byte, k, v []byte) ([]byte, error) {
+func (f Binary) encodeRow(op byte, k, v []byte) (int, []byte, error) {
 	if len(k) > MaxBinaryKeyLength {
-		return nil, fmt.Errorf("%w: %d (max %d)", ErrKeyTooLong, len(k), MaxBinaryKeyLength)
+		return -1, nil, fmt.Errorf("%w: %d (max %d)", ErrKeyTooLong, len(k), MaxBinaryKeyLength)
 	}
 	if len(v) > MaxBinaryValueLength {
-		return nil, fmt.Errorf("%w: %d (max %d)", ErrValueTooLong, len(k), MaxBinaryValueLength)
+		return -1, nil, fmt.Errorf("%w: %d (max %d)", ErrValueTooLong, len(k), MaxBinaryValueLength)
 	}
 	out := []byte{op}
 	out = append(out, uint8(len(k)))
 	out = binary.BigEndian.AppendUint32(out, uint32(len(v)))
 	out = append(out, k...)
+	vIndex := len(out)
 	out = append(out, v...)
-	return out, nil
+	return vIndex, out, nil
 }
 
-func (f Binary) EncodePutRow(k, v []byte) ([]byte, error) { return f.encodeRow(f.PutOp, k, v) }
-func (f Binary) EncodeDeleteRow(k []byte) ([]byte, error) { return f.encodeRow(f.DeleteOp, k, nil) }
+func (f Binary) EncodePutRow(k, v []byte) (int, []byte, error) { return f.encodeRow(f.PutOp, k, v) }
+
+func (f Binary) EncodeDeleteRow(k []byte) ([]byte, error) {
+	_, b, err := f.encodeRow(f.DeleteOp, k, nil)
+	return b, err
+}
 
 func (f Binary) Extract(r io.Reader, m keyrefs.Map) (int, error) {
 	offset := 0
@@ -99,7 +104,7 @@ func (f Binary) Extract(r io.Reader, m keyrefs.Map) (int, error) {
 		offset += n
 
 		// If delete-op, any possible past keyref should be deleted, then continue to next row.
-		if header[0] == f.DeleteOp {
+		if op == f.DeleteOp {
 			err = m.Delete(k)
 			if err != nil {
 				return n, fmt.Errorf("found delete key %q: %w", k, err)

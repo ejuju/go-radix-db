@@ -10,7 +10,7 @@ import (
 
 func TestBinaryFormat(t *testing.T) {
 	t.Run("can encode a put-row", func(t *testing.T) {
-		row, err := DefaultBinaryFormat.EncodePutRow([]byte("MyK"), []byte("MyVal"))
+		vIndex, row, err := DefaultBinaryFormat.EncodePutRow([]byte("MyK"), []byte("MyVal"))
 		if err != nil {
 			panic(err)
 		}
@@ -24,6 +24,9 @@ func TestBinaryFormat(t *testing.T) {
 		}
 		if !bytes.Equal(row, wantRow) {
 			t.Fatalf("got row %q but wanted %q", row, wantRow)
+		}
+		if vIndex != 9 {
+			t.Fatalf("value start index should be 9 but got %d", vIndex)
 		}
 	})
 
